@@ -9,3 +9,16 @@ class Chunk(BaseModel):
     chunk_index: int
     char_start: int
     char_end: int
+
+
+class Citation(BaseModel):
+    marker: int
+    source_file: str
+    page_number: int
+    chunk_id: str
+    snippet: str
+
+
+class AnswerResponse(BaseModel):
+    answer: str
+    citations: list[Citation]

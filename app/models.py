@@ -22,3 +22,8 @@ class Citation(BaseModel):
 class AnswerResponse(BaseModel):
     answer: str
     citations: list[Citation]
+
+
+class QueryRequest(BaseModel):
+    question: str
+    top_k: int = 5

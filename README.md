@@ -6,6 +6,32 @@ using a **fully local, open-source stack** — no hosted LLM APIs. Every answer
 comes with inline citations back to the exact source PDF page it was drawn
 from.
 
+**Status:** working prototype. The full ingest → retrieve → generate → cite
+pipeline is implemented, tested, and verified end-to-end against real CDC/NCHS
+PDFs with a real local LLM. It is not yet production-hardened — see
+[Limitations](#grounding--citations) below.
+
+## Project structure
+
+```
+app/
+├── config.py        # Settings (.env-driven)
+├── models.py        # Pydantic schemas: Chunk, Citation, AnswerResponse, QueryRequest
+├── ingest.py        # PDF -> per-page text (pypdf)
+├── chunker.py       # Page-boundary-aware chunking
+├── embedder.py      # sentence-transformers wrapper
+├── vectorstore.py   # Chroma wrapper (add/query/list/delete)
+├── retriever.py     # Embeds a query and searches the vector store
+├── generator.py     # Prompt building + Ollama client
+├── citations.py     # Maps [n] markers in the answer back to source chunks
+├── pipeline.py       # Glue: RagPipeline used by both the API and the CLI
+└── api.py            # FastAPI app: /health, /ingest, /query, /documents
+
+scripts/ingest_cli.py   # Batch ingestion without the API
+data/raw/               # Sample PDFs + SOURCES.md (provenance/license)
+tests/                  # pytest suite (unit + integration-marked live-LLM tests)
+```
+
 ## Stack
 
 | Concern | Choice |
@@ -52,6 +78,16 @@ uvicorn app.api:app --reload
 ```
 
 Then open http://localhost:8000/docs for the interactive Swagger UI.
+
+### API endpoints
+
+| Method & path | Purpose |
+|---|---|
+| `GET /health` | Checks that Chroma and the Ollama daemon are both reachable |
+| `POST /ingest` | Upload a PDF (multipart); chunks, embeds, and indexes it |
+| `GET /documents` | Lists indexed documents with their chunk counts |
+| `DELETE /documents/{document_id}` | Removes a document's chunks from the index |
+| `POST /query` | `{"question": str, "top_k": int}` → an answer with citations |
 
 ### Ingest documents
 
